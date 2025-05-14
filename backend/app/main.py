@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from .config import settings
 from .analysis.router import router as analysis_router
 from .analysis.router_db import router as analysis_db_router
+from .analysis.campaign_router import router as analysis_campaign_router
 from .generation.router import router as generation_router
 from .builder.router import router as builder_router
 from .publication.router import router as publication_router
@@ -54,6 +55,7 @@ async def health_check():
 # Include routers from submodules
 app.include_router(analysis_router, prefix="/analysis", tags=["Analysis"])
 app.include_router(analysis_db_router, prefix="/analysis", tags=["Analysis DB"])
+app.include_router(analysis_campaign_router, tags=["Campaign Analysis"])
 app.include_router(generation_router, prefix="/generation", tags=["Generation"])
 app.include_router(builder_router, prefix="/builder", tags=["Builder"])
 app.include_router(publication_router, prefix="/publication", tags=["Publication"])
