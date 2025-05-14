@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "backend"
+version = "0.1.0"
+description = "Backend for Skyent-dev"
+authors = ["Xenolab <contact@xenolab.co>"]
+readme = "README.md"
+license = "MIT"
+packages = [{include = "app"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.110.0"
+uvicorn = {extras = ["standard"], version = "^0.27.1"}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+ruff = "^0.3.0"
+mypy = "^1.9.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 88
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # Pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+]
+ignore = ["E501"] # line too long, handled by black
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
