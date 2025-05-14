@@ -1,7 +1,7 @@
 # app/db/models/analysis.py
 import datetime
 from typing import Optional
-from sqlalchemy import String, Text, DateTime, Integer, Float, ForeignKey
+from sqlalchemy import String, Text, DateTime, Integer, Float, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -16,12 +16,12 @@ class Analysis(Base):
     content_hash: Mapped[str] = mapped_column(String(64), index=True, unique=True)
     original_content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.utcnow
+        DateTime, server_default=func.now()
     )
     updated_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, 
-        default=datetime.datetime.utcnow,
-        onupdate=datetime.datetime.utcnow
+        server_default=func.now(),
+        onupdate=func.now()
     )
     
     # Relations avec d'autres modèles
@@ -51,7 +51,7 @@ class SentimentAnalysis(Base):
     neutral_score: Mapped[float] = mapped_column(Float)
     compound_score: Mapped[float] = mapped_column(Float)
     created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.utcnow
+        DateTime, server_default=func.now()
     )
     
     # Relation avec l'analyse parente
@@ -71,7 +71,7 @@ class Keyword(Base):
     text: Mapped[str] = mapped_column(String(100))
     score: Mapped[float] = mapped_column(Float)
     created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.utcnow
+        DateTime, server_default=func.now()
     )
     
     # Relation avec l'analyse parente
@@ -90,7 +90,7 @@ class Summary(Base):
     analysis_id: Mapped[int] = mapped_column(ForeignKey("analyses.id"), unique=True)
     text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.utcnow
+        DateTime, server_default=func.now()
     )
     
     # Relation avec l'analyse parente

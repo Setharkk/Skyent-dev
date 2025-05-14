@@ -1,6 +1,6 @@
 # backend/tests/test_analysis_api_db.py
+import asyncio
 import pytest
-import pytest_asyncio
 import httpx
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
@@ -12,7 +12,19 @@ from app.db.session import get_db_session
 # Base de données en mémoire pour les tests
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 
-@pytest_asyncio.fixture
+# Utilisons pytest_asyncio.fixture au lieu de pytest.fixture
+# pour éviter les conflits avec event_loop
+import pytest_asyncio
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """Créer une nouvelle boucle d'événements pour chaque session de test."""
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    yield loop
+    loop.close()
+
+@pytest.fixture
 async def test_app():
     """Créer une instance de test de l'application."""
     # Configuration d'une base de données en mémoire pour les tests
@@ -32,12 +44,14 @@ async def test_app():
     
     app.dependency_overrides[get_db_session] = override_get_db
     
+    # Retourner l'app comme valeur, pas un générateur
     return app
 
 @pytest.mark.asyncio
 async def test_analyze_content_endpoint(test_app):
     """Tester l'endpoint d'analyse de contenu avec base de données."""
-    async with AsyncClient(transport=httpx.ASGITransport(app=test_app), base_url="http://test") as client:
+    app_instance = await test_app
+    async with AsyncClient(transport=httpx.ASGITransport(app=app_instance), base_url="http://test") as client:
         response = await client.post(
             "/analysis/db/analyze",
             json={
@@ -73,7 +87,8 @@ async def test_analyze_content_endpoint(test_app):
 async def test_get_analysis_by_id(test_app):
     """Tester l'endpoint de récupération d'une analyse par ID avec base de données."""
     # D'abord, créer une analyse
-    async with AsyncClient(transport=httpx.ASGITransport(app=test_app), base_url="http://test") as client:
+    app_instance = await test_app
+    async with AsyncClient(transport=httpx.ASGITransport(app=app_instance), base_url="http://test") as client:
         response_create = await client.post(
             "/analysis/db/analyze",
             json={
@@ -103,7 +118,8 @@ async def test_get_analysis_by_id(test_app):
 @pytest.mark.asyncio
 async def test_list_analyses(test_app):
     """Tester l'endpoint de liste des analyses avec base de données."""
-    async with AsyncClient(transport=httpx.ASGITransport(app=test_app), base_url="http://test") as client:
+    app_instance = await test_app
+    async with AsyncClient(transport=httpx.ASGITransport(app=app_instance), base_url="http://test") as client:
         # D'abord, créer quelques analyses
         for i in range(3):
             await client.post(

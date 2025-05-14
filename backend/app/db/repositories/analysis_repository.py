@@ -96,3 +96,21 @@ class AnalysisRepository:
         query = delete(Analysis).where(Analysis.id == analysis_id)
         result = await self.session.execute(query)
         return result.rowcount > 0
+
+    async def get_sentiment_analyses_by_analysis_id(self, analysis_id: int) -> List[SentimentAnalysis]:
+        """Récupère toutes les analyses de sentiment pour une analyse donnée."""
+        query = select(SentimentAnalysis).where(SentimentAnalysis.analysis_id == analysis_id)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+    
+    async def get_keywords_by_analysis_id(self, analysis_id: int) -> List[Keyword]:
+        """Récupère tous les mots-clés pour une analyse donnée."""
+        query = select(Keyword).where(Keyword.analysis_id == analysis_id)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+    
+    async def get_summaries_by_analysis_id(self, analysis_id: int) -> List[Summary]:
+        """Récupère tous les résumés pour une analyse donnée."""
+        query = select(Summary).where(Summary.analysis_id == analysis_id)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())

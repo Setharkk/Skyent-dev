@@ -1,4 +1,5 @@
 # backend/tests/test_db_integration.py
+import asyncio
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
@@ -8,10 +9,18 @@ from app.db.base import Base
 from app.db.repositories.analysis_repository import AnalysisRepository
 from app.db.models.analysis import Analysis, SentimentAnalysis, Keyword, Summary
 
+
 # Configure une base de données SQLite en mémoire pour les tests
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 
-# Utiliser le fixture event_loop fourni par pytest_asyncio au lieu de le redéfinir
+@pytest.fixture(scope="session")
+def event_loop():
+    """Crée une nouvelle boucle événementielle pour chaque session de test."""
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    yield loop
+    loop.close()
+
 
 @pytest_asyncio.fixture(scope="function")
 async def test_db_engine():
