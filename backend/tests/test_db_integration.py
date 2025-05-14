@@ -1,0 +1,127 @@
+# backend/tests/test_db_integration.py
+import asyncio
+import pytest
+import pytest_asyncio
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+
+from app.config import settings
+from app.db.base import Base
+from app.db.repositories.analysis_repository import AnalysisRepository
+from app.db.models.analysis import Analysis, SentimentAnalysis, Keyword, Summary
+
+
+# Configure une base de données SQLite en mémoire pour les tests
+TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """Crée une nouvelle boucle événementielle pour chaque session de test."""
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_db_engine():
+    """Crée un moteur SQLAlchemy en mémoire pour les tests."""
+    engine = create_async_engine(TEST_DB_URL, echo=False)
+    async with engine.begin() as conn:
+        # Créer toutes les tables définies dans les modèles SQLAlchemy
+        await conn.run_sync(Base.metadata.create_all)
+    yield engine
+    async with engine.begin() as conn:
+        # Supprimer toutes les tables après chaque test
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_db_session(test_db_engine):
+    """Crée une session de base de données pour les tests."""
+    test_async_session = async_sessionmaker(
+        bind=test_db_engine, expire_on_commit=False, class_=AsyncSession
+    )
+    async with test_async_session() as session:
+        yield session
+
+
+@pytest_asyncio.fixture(scope="function")
+async def analysis_repository(test_db_session):
+    """Crée un dépôt d'analyse pour les tests."""
+    return AnalysisRepository(test_db_session)
+
+
+@pytest.mark.asyncio
+async def test_create_analysis(analysis_repository):
+    """Teste la création d'une analyse."""
+    content = "Ceci est un texte de test pour l'analyse."
+    analysis = await analysis_repository.create_analysis(content)
+    
+    assert analysis is not None
+    assert analysis.id is not None
+    assert analysis.content_hash is not None
+    assert analysis.original_content == content
+    
+    # Vérifier que l'objet a été persisté en base de données
+    retrieved = await analysis_repository.get_by_id(analysis.id)
+    assert retrieved is not None
+    assert retrieved.id == analysis.id
+    assert retrieved.content_hash == analysis.content_hash
+    assert retrieved.original_content == content
+
+
+@pytest.mark.asyncio
+async def test_add_sentiment_analysis(analysis_repository):
+    """Teste l'ajout d'une analyse de sentiment à une analyse."""
+    content = "Ceci est un texte positif pour l'analyse de sentiment."
+    analysis = await analysis_repository.create_analysis(content)
+    
+    # Ajouter une analyse de sentiment
+    sentiment = await analysis_repository.add_sentiment_analysis(
+        analysis.id, 0.8, 0.1, 0.1, 0.7
+    )
+    
+    assert sentiment is not None
+    assert sentiment.analysis_id == analysis.id
+    assert sentiment.positive_score == 0.8
+    assert sentiment.negative_score == 0.1
+    assert sentiment.neutral_score == 0.1
+    assert sentiment.compound_score == 0.7
+    
+    # Vérifier que l'objet a été correctement lié à l'analyse
+    retrieved = await analysis_repository.get_by_id(analysis.id)
+    assert len(retrieved.sentiment_analyses) == 1
+    assert retrieved.sentiment_analyses[0].id == sentiment.id
+
+
+@pytest.mark.asyncio
+async def test_add_keywords_and_summary(analysis_repository):
+    """Teste l'ajout de mots-clés et d'un résumé à une analyse."""
+    content = "L'intelligence artificielle (IA) est un domaine interdisciplinaire qui utilise des sciences informatiques, des mathématiques et des statistiques pour créer des systèmes intelligents."
+    analysis = await analysis_repository.create_analysis(content)
+    
+    # Ajouter des mots-clés
+    keyword1 = await analysis_repository.add_keyword(analysis.id, "intelligence artificielle", 0.9)
+    keyword2 = await analysis_repository.add_keyword(analysis.id, "informatique", 0.7)
+    keyword3 = await analysis_repository.add_keyword(analysis.id, "mathématiques", 0.6)
+    
+    # Ajouter un résumé
+    summary = await analysis_repository.add_summary(
+        analysis.id, "L'IA est un domaine qui crée des systèmes intelligents."
+    )
+    
+    # Vérifier les mots-clés
+    assert keyword1 is not None
+    assert keyword1.text == "intelligence artificielle"
+    assert keyword1.score == 0.9
+    
+    # Vérifier le résumé
+    assert summary is not None
+    assert summary.text == "L'IA est un domaine qui crée des systèmes intelligents."
+    
+    # Vérifier que les objets ont été correctement liés à l'analyse
+    retrieved = await analysis_repository.get_by_id(analysis.id)
+    assert len(retrieved.keywords) == 3
+    assert retrieved.summary is not None
+    assert retrieved.summary.id == summary.id

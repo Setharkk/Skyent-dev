@@ -69,3 +69,12 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Alembic
+/backend/migrations/versions/*.py
+!/backend/migrations/versions/.keep
