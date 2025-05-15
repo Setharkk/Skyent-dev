@@ -13,6 +13,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from app.config import settings # Importer les paramètres de configuration
 from app.db.base import Base  # Importer la classe Base de vos modèles
+# Importer explicitement tous les modèles pour qu'Alembic les détecte
+from app.db.all_models import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

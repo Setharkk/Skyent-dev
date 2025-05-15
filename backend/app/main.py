@@ -12,6 +12,7 @@ from .tracking.router import router as tracking_router
 from .profiling.router import router as profiling_router
 from .model_selector.router import router as model_selector_router
 from .websearch.router import router as websearch_router
+from .moderation.router import router as moderation_router
 from .db.base import Base
 from .db.session import async_engine
 
@@ -63,4 +64,5 @@ app.include_router(tracking_router, prefix="/tracking", tags=["Tracking"])
 app.include_router(profiling_router, prefix="/profiling", tags=["Profiling"])
 app.include_router(model_selector_router, prefix="/model-selector", tags=["Model Selector"])
 app.include_router(websearch_router, prefix="/websearch", tags=["Web Search"])
+app.include_router(moderation_router, prefix="/moderation", tags=["Moderation"])
 
